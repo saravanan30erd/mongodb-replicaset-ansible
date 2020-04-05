@@ -2,18 +2,24 @@
 install:
   method: replicaset
 
+## DNS name for MongoDB Nodes
 dns_domain: example.com
 
+## MongoDB version
 mongodb_version: 4.2
 
+## MongoDB Official Repository URL
 mongodb_repo_url: https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/{{ mongodb_version }}/x86_64/
 
+## MongoDB Replica Set Name
 replicaset_name: test
 
 ## MongoDB Admin credentials
 mongodb_admin_user: admin
 mongodb_admin_password: Test123
 
+## MongoDB Servers disk name for tuning
 disk_name: xvda
 
+## MongoDB port
 mongodb_port: 27017
