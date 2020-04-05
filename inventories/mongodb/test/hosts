@@ -1,0 +1,8 @@
+mongodb-01-test ansible_host=10.0.10.3  ansible_user=root ip=10.0.10.3
+mongodb-02-test ansible_host=10.0.10.4  ansible_user=root ip=10.0.10.4
+mongodb-03-test ansible_host=10.0.10.5  ansible_user=root ip=10.0.10.5
+
+[nodes]
+mongodb-01-test
+mongodb-02-test
+mongodb-03-test

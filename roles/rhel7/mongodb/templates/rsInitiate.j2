@@ -1,0 +1,4 @@
+rs.initiate();
+rs.add("{{ groups['nodes'][1] }}.{{ dns_domain }}");
+rs.add("{{ groups['nodes'][2] }}.{{ dns_domain }}");
+rs.status();

@@ -1,0 +1,19 @@
+## Installation method, single (Single server setup) or replicaset (Replica Set)
+install:
+  method: replicaset
+
+dns_domain: example.com
+
+mongodb_version: 4.2
+
+mongodb_repo_url: https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/{{ mongodb_version }}/x86_64/
+
+replicaset_name: test
+
+## MongoDB Admin credentials
+mongodb_admin_user: admin
+mongodb_admin_password: Test123
+
+disk_name: xvda
+
+mongodb_port: 27017

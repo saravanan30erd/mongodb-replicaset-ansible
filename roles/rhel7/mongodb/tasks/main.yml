@@ -1,0 +1,81 @@
+---
+
+- name: Set hostname
+  hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Populate the nodes to /etc/hosts
+  import_tasks: etchosts.yml
+
+- name: Disable the selinux
+  selinux:
+    state: disabled
+
+- name: Create the MongoDB yum repo
+  template:
+    src: mongodb.repo.j2
+    dest: /etc/yum.repos.d/mongodb.repo
+    mode: 0644
+
+- name: Install the mongodb packages
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - mongodb-org
+  register: installation
+
+- name: Copy the mongodb conf file
+  template:
+    src: mongodb-{{ install.method }}.conf.j2
+    dest: /etc/mongod.conf
+    mode: 0644
+  when: installation.changed
+
+- name: Enable and start the MongoDB service
+  systemd:
+    name: mongod
+    state: started
+    enabled: yes
+  when: installation.changed
+
+- name: Initiate the replicaset and add the other members - Copy
+  template:
+    src: rsInitiate.j2
+    dest: /tmp/rsInitiate.j2
+  when: installation.changed and install.method == "replicaset"
+
+- name: Initiate the replicaset and add the other members - Run
+  shell: mongo --host {{ inventory_hostname }}.{{ dns_domain }} < /tmp/rsInitiate.j2
+  run_once: true
+  when: installation.changed and install.method == "replicaset"
+  register: replicaset_status
+
+- name: Status of the mongodb cluster
+  debug:
+    msg: "{{ replicaset_status.stdout }}"
+  run_once: true
+  when: installation.changed and install.method == "replicaset"
+
+- name: Create admin user with root access - Copy
+  template:
+    src: accessControl.j2
+    dest: /tmp/accessControl.j2
+  when: installation.changed
+
+- name: Create admin user with root access - Run
+  shell: mongo --host {{ inventory_hostname }}.{{ dns_domain }} < /tmp/accessControl.j2
+  run_once: true
+  when: installation.changed
+
+- name: Enable SSL configuration & X509 Authentication
+  include: mongodb_security.yml
+  when: installation.changed
+
+- name: Tune the system for performance
+  include: tune.yml
+  tags:
+  - tune
+
+- name: Wait for MongoDB to startup
+  wait_for: host={{ hostvars[inventory_hostname]['ip'] }} port={{ mongodb_port }} delay=5 connect_timeout=1

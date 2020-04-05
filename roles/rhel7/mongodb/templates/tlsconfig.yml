@@ -1,0 +1,33 @@
+ca:
+   root:
+      dn: CN=root.ca.{{ dns_domain }},OU=CA,O={{ dns_domain }}\, Inc.,DC={{ dns_domain }}
+      keysize: 2048
+      validityDays: 730
+      pkPassword: none
+      file: root-ca.pem
+
+### Default values and global settings
+defaults:
+      validityDays: 730
+      pkPassword: none
+      # Set this to true in order to generate config and certificates for
+      # the HTTP interface of nodes
+      httpsEnabled: false
+      reuseTransportCertificatesForHttp: false
+      verifyHostnames: false
+      resolveHostnames: false
+
+
+###
+### Nodes
+###
+#
+# Specify the nodes of your MongoDB cluster here
+#
+nodes:
+{% for item in groups['nodes'] %}
+  - name: {{ item }}
+    dn: CN={{ item }}.{{ dns_domain }},OU=Ops,O={{ dns_domain }}\, Inc.,DC={{ dns_domain }}
+    dns: {{ item }}.{{ dns_domain }}
+    ip: {{ hostvars[item]['ip'] }}
+{% endfor %}

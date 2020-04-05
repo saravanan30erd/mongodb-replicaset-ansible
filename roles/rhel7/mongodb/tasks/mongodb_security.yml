@@ -1,0 +1,91 @@
+---
+## Here we are going to use self-signed certificates for SSL & X509 Authentication between nodes.
+## Using searchguard offline TLS tool to create node & root certificates.
+- name: Prepare local temporary directory for certificates generation
+  local_action:
+    module: file
+    path: /tmp/mongodb-nodecerts
+    state: absent
+  run_once: true
+
+- name: Create local temporary directory for certificates generation
+  local_action:
+    module: file
+    path: /tmp/mongodb-nodecerts
+    state: directory
+  run_once: true
+
+- name: Download certificates generation tool
+  local_action:
+    module: get_url
+    url: https://search.maven.org/remotecontent?filepath=com/floragunn/search-guard-tlstool/1.5/search-guard-tlstool-1.5.zip
+    dest: /tmp/mongodb-nodecerts/search-guard-tlstool.zip
+  run_once: true
+
+- name: Extract the certificates generation tool
+  local_action: command chdir=/tmp/mongodb-nodecerts tar -xvf search-guard-tlstool.zip
+  run_once: true
+
+- name: Make the executable file
+  local_action:
+    module: file
+    dest: /tmp/mongodb-nodecerts/tools/sgtlstool.sh
+    mode: a+x
+  run_once: true
+
+- name: Prepare the certificates generation template file
+  local_action:
+    module: template
+    src: tlsconfig.yml
+    dest: /tmp/mongodb-nodecerts/config/tlsconfig.yml
+  run_once: true
+
+- name: Generate the node & admin certificates in local
+  local_action:
+    module: command /tmp/mongodb-nodecerts/tools/sgtlstool.sh -c /tmp/mongodb-nodecerts/config/tlsconfig.yml -ca -crt -t /tmp/mongodb-nodecerts/config/
+  run_once: true
+
+- name: Create MongoDB SSL directory
+  file:
+    path: /etc/mongodb/ssl
+    state: directory
+    owner: mongod
+    group: mongod
+    mode: 0700
+
+- name: Copy the node & admin certificates to MongoDB cluster
+  copy:
+    src: "/tmp/mongodb-nodecerts/config/{{ item }}"
+    dest: /etc/mongodb/ssl/
+    mode: 0644
+    owner: mongod
+    group: mongod
+  with_items:
+    - root-ca.pem
+    - root-ca.key
+    - "{{ inventory_hostname }}.key"
+    - "{{ inventory_hostname }}.pem"
+
+- name: Create the node certificate pem file
+  shell:
+    cmd: cat {{ inventory_hostname }}.key {{ inventory_hostname }}.pem > {{ inventory_hostname }}-ssl.pem
+    chdir: /etc/mongodb/ssl/
+
+- name: Set permission for node certificate pem file
+  file:
+    path: /etc/mongodb/ssl/{{ inventory_hostname }}-ssl.pem
+    state: file
+    owner: mongod
+    group: mongod
+    mode: 0644
+
+- name: Copy the mongodb conf file(SSL)
+  template:
+    src: mongodb-ssl-{{ install.method }}.conf.j2
+    dest: /etc/mongod.conf
+    mode: 0644
+
+- name: Restart the MongoDB service
+  systemd:
+    name: mongod
+    state: restarted

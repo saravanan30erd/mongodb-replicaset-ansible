@@ -1,0 +1,24 @@
+---
+
+- name: Change the disk I/O scheduler to Noop
+  blockinfile:
+    path: /etc/rc.d/rc.local
+    marker: "## {mark} Change DISK scheduler##"
+    insertafter: EOF
+    block: "echo noop > /sys/block/{{ disk_name }}/queue/scheduler"
+
+- name: Set excute permission for rc.local
+  file:
+    dest: /etc/rc.d/rc.local
+    mode: a+x
+
+- name: update glibc libraries
+  yum:
+    name: glibc
+    state: latest
+
+- name: Set vm.swappiness to 1
+  sysctl:
+    name: vm.swappiness
+    value: '1'
+    state: present
